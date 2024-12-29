@@ -106,7 +106,7 @@ class LiveChatScraper:
         print("scraping completed")
         return True
 
-    def output_messages(self):
+    def output_messages(self, message_type_whitelist = None):
         """"build a messages list that contains all the chat messages"""
         messages = []
         builder = messageFactory()
@@ -117,16 +117,18 @@ class LiveChatScraper:
                 pass
             else:
                 message = builder.build(payload)
+                if message is None or (message_type_whitelist is not None and not isinstance(message, message_type_whitelist)):
+                    continue
                 message.build_message()
                 messages.append(message.generate_content())
         return messages
 
-    def write_to_file(self, write_type, output_filename = None):
+    def write_to_file(self, write_type, output_filename = None, message_type_whitelist = None):
         """"writes currently scraped content to a file output"""
         if output_filename is None:
             output_filename = f'{write_type}_{self.output_filename}'
         generator = OutputGenerator(output_filename)
         if write_type != con.OUTPUT_RAW:
-            generator.generate(self.output_messages(), write_type)
+            generator.generate(self.output_messages(message_type_whitelist=message_type_whitelist), write_type)
         else:
             generator.generate(self.content_set, write_type)

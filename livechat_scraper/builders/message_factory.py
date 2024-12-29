@@ -38,7 +38,7 @@ class messageFactory():
                 return builder(payload)
 
         for m_type, builder in self.build_from_items.items():
-            if m_type in payload[nc.ADD_CHAT_ITEM_ACTION_NODE][nc.ITEM_NODE]:
+            if nc.ADD_CHAT_ITEM_ACTION_NODE in payload and m_type in payload[nc.ADD_CHAT_ITEM_ACTION_NODE][nc.ITEM_NODE]:
                 return builder(payload)
 
         print(payload)
