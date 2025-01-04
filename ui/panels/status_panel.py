@@ -7,7 +7,7 @@ class StatusPanel(Frame):
     def __init__(self, master):
         super().__init__(master=master)
         self._status_label = Label(self)
-        self._status_label.grid(row=0, column=0, sticky='w')
+        self._status_label.grid(row=0, column=0)
 
         self._clear_timer = None
 
@@ -23,8 +23,10 @@ class StatusPanel(Frame):
 
     def log_info(self, msg, clear_after_secs=5):
         self._status_label.config(text=msg, fg='black')
-        self.__schedule_label_clear(clear_after_secs)
+        if clear_after_secs is not None:
+            self.__schedule_label_clear(clear_after_secs)
 
     def log_error(self, msg, clear_after_secs=5):
         self._status_label.config(text=msg, fg='red')
-        self.__schedule_label_clear(clear_after_secs)
+        if clear_after_secs is not None:
+            self.__schedule_label_clear(clear_after_secs)

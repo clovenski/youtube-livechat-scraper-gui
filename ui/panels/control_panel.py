@@ -1,54 +1,81 @@
-from tkinter import Button, Checkbutton, Entry, Frame, Label, IntVar
+import threading
+from tkinter import Button, Checkbutton, Entry, Frame, Label, IntVar, messagebox
 
 from livechat_scraper.messages.membership_gifted_message import MembershipGiftedMessage
 from livechat_scraper.messages.superchat_message import SuperChatMessage
 
 
 class ControlPanel(Frame):
-    def __init__(self, master, engine, status_panel, output_panel):
+    def __init__(self, master, engine, msg_mapper, status_panel, output_panel):
         super().__init__(master=master)
 
         self._engine = engine
+        self._msg_mapper = msg_mapper
         self._status_panel = status_panel
         self._output_panel = output_panel
 
         self._message_types_selected = [
-            ('Super chat message', SuperChatMessage, IntVar()),
-            ('Membership gifted message', MembershipGiftedMessage, IntVar()),
+            ('Super chat messages', SuperChatMessage, IntVar()),
+            ('Membership gifted messages', MembershipGiftedMessage, IntVar()),
+            # other message types can be added below
         ]
 
         # first row
         video_url_entry_label = Label(self, text='Enter YouTube video URL:')
-        video_url_entry_label.grid(row=0, column=0, padx=5, pady=5)
-        self._video_url_entry = Entry(self) # TODO: the text box needs to be wider
-        self._video_url_entry.grid(row=0, column=1, columnspan=len(self._message_types_selected), padx=5, pady=5)
+        video_url_entry_label.grid(row=0, column=0, padx=2, pady=2)
+        self._video_url_entry = Entry(self, width=50)
+        self._video_url_entry.grid(row=0, column=1, padx=2, pady=2)
+        self._start_scraping_btn = Button(self, text='Scrape', command=self.__on_start_scrape_btn_click)
+        self._start_scraping_btn.grid(row=0, column=2, padx=2, pady=2)
         
         # second row
-        m_types_selection_label = Label(self, text='What type of messages to fetch?')
-        m_types_selection_label.grid(row=1, column=0, padx=5, pady=5)
-        col_idx = 1
+        m_types_selection_label = Label(self, text='What type of messages to display?')
+        m_types_selection_label.grid(row=1, column=0, padx=2, pady=2)
+        m_types_checkbuttons_group = Frame(self)
+        cb_row = cb_col = 0
+        cb_max_cols = 2
         for (m_type_name, _, variable) in self._message_types_selected:
-            cb = Checkbutton(self, text=m_type_name, variable=variable, onvalue=1, offvalue=0)
-            cb.grid(row=1, column=col_idx, padx=5, pady=5)
-            col_idx += 1
+            cb = Checkbutton(m_types_checkbuttons_group, text=m_type_name, variable=variable, onvalue=1, offvalue=0)
+            cb.grid(row=cb_row, column=cb_col, padx=2, pady=2)
+            cb_col += 1
+            if cb_col == cb_max_cols:
+                cb_row += 1
+                cb_col = 0
+        m_types_checkbuttons_group.grid(row=1, column=1, padx=2, pady=2)
 
         # third row
-        start_scraping_btn = Button(self, text='Start', command=self.__start_scraping)
-        start_scraping_btn.grid(row=2, column=0, sticky='e')
+        self._display_messages_btn = Button(self, text='Display', command=self.__on_display_messages_btn_click, state='disabled')
+        self._display_messages_btn.grid(row=2, column=2, padx=2, pady=2)
         
-    def __start_scraping(self):
+    def __on_start_scrape_btn_click(self):
         video_url = self._video_url_entry.get()
         if video_url == '':
             self._status_panel.log_error('Please enter the video URL')
             return
+        if self._engine.scraped_video and not messagebox.askokcancel('Confirm', 'Are you sure you want to scrape a new video?\nThe previous video would need to be scraped again.'):
+            return
 
-        self._output_panel.clear()
+        self._engine.initialize_scraper(video_url=video_url, on_progress_update=lambda progress_str: self._status_panel.log_info(progress_str, clear_after_secs=None))
+        # use separate thread to not block UI
+        thread = threading.Thread(target=self.__start_scraping)
+        thread.daemon = True
+        thread.start()
 
-        self._status_panel.log_info('Fetching messages...')
+    def __start_scraping(self):
+        self._status_panel.log_info('Scraping...', clear_after_secs=None)
+        self._start_scraping_btn.configure(state='disabled')
+        self._engine.scrape()
+        self._status_panel.log_info('Done scraping video', clear_after_secs=None)
+        self._start_scraping_btn.configure(state='normal')
+        self._display_messages_btn.configure(state='normal')
+
+    def __on_display_messages_btn_click(self):
         m_type_whitelist = tuple(m_type for (_, m_type, variable) in self._message_types_selected if variable.get() == 1)
-        # TODO: this blocks the UI while scraping is running
-        self._engine.scrape(video_url, message_type_whitelist=m_type_whitelist)
-        self._status_panel.log_info('Done fetching messages')
 
-        self._output_panel.show_results(self._engine.get_scraped_messages())
-        
+        if m_type_whitelist == ():
+            self._status_panel.log_error('Please select at least one message type')
+            return
+
+        self._output_panel.show_results(
+            list(self._msg_mapper.map(result) for result in self._engine.get_scraped_messages(message_type_whitelist=m_type_whitelist))
+        )

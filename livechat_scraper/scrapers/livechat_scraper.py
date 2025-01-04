@@ -20,7 +20,7 @@ class LiveChatScraper:
     invalid_characters = "<>:\"/\\|?*"
     sleepValue = 3
 
-    def __init__(self, video_url, debug_mode = False):
+    def __init__(self, video_url, debug_mode = False, on_progress_update = None):
         self.video = Video(None,video_url, None)
         self.is_debugging = debug_mode
         self.content_set = []
@@ -29,6 +29,7 @@ class LiveChatScraper:
         self.end_time = 0
         self.initialization_successful = False
         self.requestor = None
+        self.on_progress_update = on_progress_update
         
     def __set_initial_parameters(self):
         try:
@@ -91,7 +92,10 @@ class LiveChatScraper:
             and self.player_state.continuation != con.SCRAPE_FINISHED):
             try:
                 progress = float(self.player_state.player_offset_ms)/float(self.end_time)
-                print(f'progress: {progress:.2%}', end="\r")
+                if self.on_progress_update is not None:
+                    self.on_progress_update(f'progress: {progress:.2%}\r')
+                else:
+                    print(f'progress: {progress:.2%}', end="\r")
                 floored_progress = floor(progress * 100)
                 if current_interval != floored_progress:
                     has_slept = False
