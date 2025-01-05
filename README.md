@@ -41,5 +41,5 @@ Regarding the GUI:
 For building the single exe:
 
 ```powershell
-pyinstaller --onefile -w -F --add-data ".\assets\;.\assets\" --add-data ".\livechat_scraper\;.\livechat_scraper\" --add-data ".\ui\;.\ui\" --hidden-import "json" --hidden-import "tkinter.messagebox" --hidden-import "tkinter.filedialog" --hidden-import "uuid" --hidden-import "requests" --hidden-import "bs4" --hidden-import 'tkinter.ttk' -n yt-livechat-scraper --icon ".\assets\icon-32px.ico"  .\gui.py
+pyinstaller -w --add-data ".\assets\;.\assets\" --add-data ".\livechat_scraper\;.\livechat_scraper\" --add-data ".\ui\;.\ui\" --hidden-import "json" --hidden-import "tkinter.messagebox" --hidden-import "tkinter.filedialog" --hidden-import "uuid" --hidden-import "requests" --hidden-import "bs4" --hiddenimport 'tkinter.ttk' -n yt-livechat-scraper --icon ".\assets\icon-32px.ico"  .\gui.py
 ```
