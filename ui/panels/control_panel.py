@@ -1,5 +1,7 @@
+import csv
 import threading
 from tkinter import Button, Checkbutton, Entry, Frame, Label, IntVar, messagebox
+from tkinter.filedialog import asksaveasfilename
 
 from livechat_scraper.messages.membership_gifted_message import MembershipGiftedMessage
 from livechat_scraper.messages.superchat_message import SuperChatMessage
@@ -43,9 +45,12 @@ class ControlPanel(Frame):
                 cb_col = 0
         m_types_checkbuttons_group.grid(row=1, column=1, padx=2, pady=2)
 
-        # third row
         self._display_messages_btn = Button(self, text='Display', command=self.__on_display_messages_btn_click, state='disabled')
-        self._display_messages_btn.grid(row=2, column=2, padx=2, pady=2)
+        self._display_messages_btn.grid(row=1, column=2, padx=2, pady=2)
+
+        # third row
+        self._save_to_csv_btn = Button(self, text='Save to CSV', command=self.__on_save_to_csv_btn_click, state='disabled')
+        self._save_to_csv_btn.grid(row=2, column=2, padx=2, pady=2)
         
     def __on_start_scrape_btn_click(self):
         video_url = self._video_url_entry.get()
@@ -64,6 +69,8 @@ class ControlPanel(Frame):
     def __start_scraping(self):
         self._status_panel.log_info('Scraping...', clear_after_secs=None)
         self._start_scraping_btn.configure(state='disabled')
+        self._display_messages_btn.configure(state='disabled')
+        self._save_to_csv_btn.configure(state='disabled')
         self._engine.scrape()
         self._status_panel.log_info('Done scraping video', clear_after_secs=None)
         self._start_scraping_btn.configure(state='normal')
@@ -79,3 +86,17 @@ class ControlPanel(Frame):
         self._output_panel.show_results(
             list(self._msg_mapper.map(result) for result in self._engine.get_scraped_messages(message_type_whitelist=m_type_whitelist))
         )
+
+        self._save_to_csv_btn.configure(state='normal')
+
+    def __on_save_to_csv_btn_click(self):
+        filename = asksaveasfilename(filetypes=[('CSV', '*.csv'), ('All Files', '*.*')], defaultextension='csv')
+        if filename == '':
+            return
+            
+        with open(filename, 'w', newline='', encoding='utf-8') as out_file:
+            csvwriter = csv.writer(out_file, delimiter=',')
+            for line in self._output_panel.get_output_as_csv():
+                csvwriter.writerow(line)
+
+        self._status_panel.log_info(f'Done saving results to a CSV file')

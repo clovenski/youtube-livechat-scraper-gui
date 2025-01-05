@@ -48,7 +48,9 @@ class MessageMapper:
             message_text = message['content']['message']
         if m_type == MESSAGE_TYPE_MEMBERSHIP_GIFT:
             m_type = 'Gifted members'
-            message_text = message['content']['giftText']
+            gift_text = message['content']['giftText']
+            amount = gift_text.split(sep=None, maxsplit=3)[1] # expecting format of message to be "Gifted N {streamer_name} memberships"
+            message_text = gift_text
         
         return Message(
                 timestamp=timestamp,
@@ -68,14 +70,14 @@ if __name__ == '__main__':
     x_offset = int(root.winfo_screenwidth() / 3 - root_width / 3)
     y_offset = int(root.winfo_screenheight() / 3 - root_height / 3)
     root.geometry('500x500+{}+{}'.format(x_offset, y_offset))
-    root.minsize(600,550)
+    root.minsize(800,550)
 
     output_panel = OutputPanel(master=root)
     status_panel = StatusPanel(master=root)
     control_panel = ControlPanel(master=root, engine=Engine(), msg_mapper=MessageMapper(), status_panel=status_panel, output_panel=output_panel)
 
     output_panel.pack(fill='both', expand=True)
-    control_panel.pack()
+    control_panel.pack(pady=3)
     status_panel.pack()
 
     root.mainloop()
