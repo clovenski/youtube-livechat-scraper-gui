@@ -80,4 +80,5 @@ if __name__ == '__main__':
     control_panel.pack(pady=3)
     status_panel.pack()
 
+    root.iconbitmap('.\\assets\\icon-32px.ico')
     root.mainloop()
